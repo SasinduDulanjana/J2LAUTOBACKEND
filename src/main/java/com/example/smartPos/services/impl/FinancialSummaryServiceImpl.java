@@ -59,7 +59,7 @@ public class FinancialSummaryServiceImpl implements IFinancialSummaryService {
 
         // Adjust total sales and COGS with returns and discounts
         totalSales = totalSales - totalSalesReturns - totalDiscounts;
-        totalCogs = totalCogs - totalPurchaseReturns - totalSalesReturnCogs;
+        totalCogs = totalCogs  - totalSalesReturnCogs;
 
         // Calculate net profit
         double netProfit = totalSales - totalCogs - totalExpenses;
@@ -96,7 +96,10 @@ public class FinancialSummaryServiceImpl implements IFinancialSummaryService {
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Double) row[1]));
 
         Map<String, Double> purchaseReturnMap = purchaseReturnData.stream()
-                .collect(Collectors.toMap(row -> (String) row[0], row -> (Double) row[1]));
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> ((Number) row[1]).doubleValue() // Convert Long to Double
+                ));
 
         Map<String, Double> saleReturnMap = saleReturnData.stream()
                 .collect(Collectors.toMap(
@@ -120,7 +123,7 @@ public class FinancialSummaryServiceImpl implements IFinancialSummaryService {
         for (String month : months) {
             double revenue = revenueMap.getOrDefault(month, 0.0) - saleReturnMap.getOrDefault(month, 0.0);
 //            double purchases = purchaseMap.getOrDefault(month, 0.0);
-            double cogs = cogsMap.getOrDefault(month, 0.0) -  purchaseReturnMap.getOrDefault(month, 0.0) - salesReturnCOGSMap.getOrDefault(month, 0.0);
+            double cogs = cogsMap.getOrDefault(month, 0.0) - salesReturnCOGSMap.getOrDefault(month, 0.0);
             double expenses = expenseMap.getOrDefault(month, 0.0);
             double netProfit = revenue - cogs - expenses;
 
