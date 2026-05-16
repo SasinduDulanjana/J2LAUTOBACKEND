@@ -15,9 +15,9 @@ WORKDIR /app
 
 # Copy the Maven build output (JAR file) into the container
 #COPY target/posapp.jar posapp.jar
-COPY --from=build /app/target/j2lapp.jar j2lapp.jar
+COPY --from=build /app/target/posapp.jar posapp.jar
 # Expose the port your Spring Boot application runs on
 EXPOSE 8080
 
 # Command to run the application
-ENTRYPOINT ["java", "-jar", "j2lapp.jar"]
+ENTRYPOINT ["java", "-jar", "posapp.jar"]
