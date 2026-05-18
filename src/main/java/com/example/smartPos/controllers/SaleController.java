@@ -25,14 +25,23 @@ public class SaleController {
 
 
     @GetMapping(path = "/api/getAllSale")
-    public List<SaleResponse> getAllSale() {
-        return saleService.getAllSales();
+    public ResponseEntity<List<SaleResponse>> getAllSale(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        List<SaleResponse> sales = saleService.getAllSales(page, size);
+        return ResponseEntity.ok(sales);
     }
 
-    @GetMapping(path = "/api/getAllDeletedSales")
-    public List<SaleResponse> getAllDeletedSales() {
-        return saleService.getAllDeletedSales();
+    @GetMapping(path = "/api/getAllSaleWithoutPagination")
+    public ResponseEntity<List<SaleResponse>> getAllSaleWithoutPagination() {
+        List<SaleResponse> sales = saleService.getAllSalesWithoutPagination();
+        return ResponseEntity.ok(sales);
     }
+
+//    @GetMapping(path = "/api/getAllDeletedSales")
+//    public List<SaleResponse> getAllDeletedSales() {
+//        return saleService.getAllDeletedSales();
+//    }
 
     @GetMapping(path = "/api/getAllHoldSales")
     public List<SaleResponse> getAllHoldSales() {

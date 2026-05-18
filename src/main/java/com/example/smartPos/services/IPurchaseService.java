@@ -14,7 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IPurchaseService {
-    List<PurchaseResponse> getAllPurchases();
+    List<PurchaseResponse> getAllPurchases(int page, int size);
+
+    List<PurchaseResponse> getAllPurchasesWithoutPagination();
 
     // Repository method using a custom query
     List<PurchaseResponse> getAllByPurchaseName(String purchaseName);

@@ -11,6 +11,10 @@ import com.example.smartPos.repositories.*;
 import com.example.smartPos.repositories.model.*;
 import com.example.smartPos.services.IPurchaseService;
 import com.example.smartPos.util.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,7 +103,51 @@ public class PurchaseServiceImpl implements IPurchaseService {
 //    }
 
     @Override
-    public List<PurchaseResponse> getAllPurchases() {
+    public List<PurchaseResponse> getAllPurchases(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "addedDate")); // Sort by purchaseDate
+        Page<Purchase> purchasePage = purchaseRepository.findAll(pageable);
+        List<Purchase> purchaseList = purchasePage.getContent();
+        // Fetch all purchase returns for the purchases
+        Map<Integer, Double> totalReturnedQtyByPurchaseId = purchaseReturnRepository.findByPurchaseIds(
+                        purchaseList.stream().map(Purchase::getPurchaseId).toList()
+                ).stream()
+                .collect(Collectors.groupingBy(
+                        pr -> pr.getPurchase().getPurchaseId(), // Use the purchaseId directly
+                        Collectors.summingDouble(PurchaseReturn::getQuantityReturned)
+                ));
+
+        // Filter out fully returned purchases
+        List<Purchase> filteredPurchases = purchaseList.stream()
+                .filter(purchase -> {
+                    double totalQty = purchase.getProducts().stream()
+                            .mapToDouble(product -> productBatchRepository
+                                    .findByPurchaseIdAndProduct_ProductId(purchase.getPurchaseId(), product.getProductId())
+                                    .getQty())
+                            .sum();
+                    double returnedQty = totalReturnedQtyByPurchaseId.getOrDefault(purchase.getPurchaseId(), 0.0);
+                    return returnedQty < totalQty; // Include if not fully returned
+                })
+                .toList();
+
+        // Fetch all payment details for the purchases in a single query
+        Map<Integer, Double> totalPaidAmountByPurchaseId = paymentDetailsRepository
+                .findByInvoiceNumbersAndPaymentPaymentTypeAndPurchasePaymentType(
+                        purchaseList.stream().map(purchase -> purchase.getPurchaseId().toString()).toList()
+                )
+                .stream()
+                .collect(Collectors.groupingBy(
+                        pd -> Integer.parseInt(pd.getPayment().getReferenceId()),
+                        Collectors.summingDouble(PaymentDetails::getAmount)
+                ));
+
+        // Map purchases to responses
+        return filteredPurchases.stream()
+                .map(purchase -> mapToPurchaseResponse(purchase, totalPaidAmountByPurchaseId))
+                .toList();
+    }
+
+    @Override
+    public List<PurchaseResponse> getAllPurchasesWithoutPagination() {
         List<Purchase> purchaseList = purchaseRepository.findAll();
 
         // Fetch all purchase returns for the purchases

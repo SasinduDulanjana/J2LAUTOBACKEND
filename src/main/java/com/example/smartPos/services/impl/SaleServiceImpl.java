@@ -11,6 +11,11 @@ import com.example.smartPos.services.ISmsService;
 import com.example.smartPos.util.*;
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,11 +70,90 @@ public class SaleServiceImpl implements ISaleService {
     }
 
     @Override
-    public List<SaleResponse> getAllSales() {
+    public List<SaleResponse> getAllSales(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "saleDate"));
         SimpleDateFormat sm = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
         // Fetch all sales with status 1
-        List<Sale> sales = saleRepository.findAllByStatus(1);
+        Page<Sale> salesPage = saleRepository.findAllByStatus(1, pageable);
+        List<Sale> sales = salesPage.getContent();
+
+        // Fetch all sales returns for the sales
+        List<SalesReturn> salesReturns = salesReturnRepository.findBySale_SaleIdIn(
+                sales.stream().map(Sale::getSaleId).toList()
+        );
+
+        // Group returned products by sale ID
+        Map<Integer, List<SalesReturn>> returnsBySaleId = salesReturns.stream()
+                .collect(Collectors.groupingBy(salesReturn -> salesReturn.getSale().getSaleId()));
+
+        // Map sales to SaleResponse
+        return sales.stream().map(sale -> {
+            // Filter out returned products for the current sale
+            List<SaleProduct> filteredProducts = sale.getSaleProducts().stream()
+                    .filter(saleProduct -> {
+                        List<SalesReturn> returnsForSale = returnsBySaleId.get(sale.getSaleId());
+                        if (returnsForSale == null) {
+                            return true; // No returns for this sale, include all products
+                        }
+                        return returnsForSale.stream()
+                                .noneMatch(salesReturn -> salesReturn.getProduct().getProductId()
+                                        .equals(saleProduct.getProduct().getProductId()));
+                    })
+                    .toList();
+
+            // Skip the sale if all products are returned
+            if (filteredProducts.isEmpty()) {
+                return null;
+            }
+
+            Double totalRefundedAmount = salesReturns.stream()
+                    .filter(salesReturn -> salesReturn.getSale().getSaleId().equals(sale.getSaleId()))
+                    .mapToDouble(SalesReturn::getRefundAmount)
+                    .sum();
+
+            // Calculate total paid amount and outstanding balance
+            Double totalPaidAmount = paymentDetailsRepository.findByInvoiceNumbersAndReceiptPaymentTypeAndSalePaymentType(
+                            List.of(sale.getInvoiceNumber())
+                    ).stream()
+                    .filter(pd -> pd.getPayment().getReferenceId().equals(sale.getInvoiceNumber()))
+                    .mapToDouble(PaymentDetails::getAmount)
+                    .sum();
+
+            Double outstandingBalance = sale.getTotalAmount() - totalPaidAmount - totalRefundedAmount;
+
+            // Map to SaleResponse
+            SaleResponse saleResponse = new SaleResponse();
+            saleResponse.setSaleId(sale.getSaleId());
+            saleResponse.setCustomer(sale.getCustomer());
+            saleResponse.setUser(sale.getUser());
+            saleResponse.setSaleDate(sm.format(sale.getSaleDate()));
+            saleResponse.setTotalAmount(sale.getTotalAmount());
+            saleResponse.setInvoiceNumber(sale.getInvoiceNumber());
+            saleResponse.setSubTotal(sale.getSubTotal());
+            saleResponse.setBillWiseDiscountPercentage(sale.getBillWiseDiscountPercentage());
+            saleResponse.setBillWiseDiscountTotalAmount(sale.getBillWiseDiscountTotalAmount());
+            saleResponse.setLineWiseDiscountTotalAmount(sale.getLineWiseDiscountTotalAmount());
+            saleResponse.setFullyPaid(sale.getFullyPaid());
+            saleResponse.setPaidAmount(totalPaidAmount);
+            saleResponse.setOutstandingBalance(outstandingBalance);
+            saleResponse.setHold(sale.getHold());
+            saleResponse.setModifiedBy(sale.getModifiedBy());
+            saleResponse.setModifiedDate(sm.format(sale.getModifiedDate()));
+            saleResponse.setVehicle(sale.getVehicle());
+            saleResponse.setVehicleNumber(sale.getVehicleNumber());
+            saleResponse.setSoldProducts(filteredProducts.stream().map(this::mapToSoldProductResponse).toList());
+            return saleResponse;
+        }).filter(Objects::nonNull).toList();
+    }
+
+    @Override
+    public List<SaleResponse> getAllSalesWithoutPagination() {
+
+        SimpleDateFormat sm = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
+        // Fetch all sales with status 1
+        List<Sale> sales = saleRepository.findAllByStatusWithoutPagination(1);
 
         // Fetch all sales returns for the sales
         List<SalesReturn> salesReturns = salesReturnRepository.findBySale_SaleIdIn(
@@ -187,29 +271,29 @@ public class SaleServiceImpl implements ISaleService {
         }).toList();
     }
 
-    @Override
-    public List<SaleResponse> getAllDeletedSales() {
-        SimpleDateFormat sm = new SimpleDateFormat("dd-MM-yyyy");
-        return saleRepository.findAllByStatus(0).stream().map(sale -> {
-            SaleResponse saleResponse = new SaleResponse();
-            saleResponse.setSaleId(sale.getSaleId());
-            saleResponse.setCustomer(sale.getCustomer());
-            saleResponse.setUser(sale.getUser());
-            saleResponse.setSaleDate(sm.format(sale.getSaleDate()));
-            saleResponse.setTotalAmount(sale.getTotalAmount());
-            saleResponse.setInvoiceNumber(sale.getInvoiceNumber());
-            saleResponse.setSubTotal(sale.getSubTotal());
-            saleResponse.setBillWiseDiscountPercentage(sale.getBillWiseDiscountPercentage());
-            saleResponse.setBillWiseDiscountTotalAmount(sale.getBillWiseDiscountTotalAmount());
-            saleResponse.setLineWiseDiscountTotalAmount(sale.getLineWiseDiscountTotalAmount());
-            saleResponse.setFullyPaid(sale.getFullyPaid());
-            saleResponse.setPaidAmount(sale.getPaidAmount());
-            saleResponse.setHold(sale.getHold());
-            saleResponse.setModifiedBy(sale.getModifiedBy());
-            saleResponse.setModifiedDate(sm.format(sale.getModifiedDate()));
-            return saleResponse;
-        }).toList();
-    }
+//    @Override
+//    public List<SaleResponse> getAllDeletedSales() {
+//        SimpleDateFormat sm = new SimpleDateFormat("dd-MM-yyyy");
+//        return saleRepository.findAllByStatus(0).stream().map(sale -> {
+//            SaleResponse saleResponse = new SaleResponse();
+//            saleResponse.setSaleId(sale.getSaleId());
+//            saleResponse.setCustomer(sale.getCustomer());
+//            saleResponse.setUser(sale.getUser());
+//            saleResponse.setSaleDate(sm.format(sale.getSaleDate()));
+//            saleResponse.setTotalAmount(sale.getTotalAmount());
+//            saleResponse.setInvoiceNumber(sale.getInvoiceNumber());
+//            saleResponse.setSubTotal(sale.getSubTotal());
+//            saleResponse.setBillWiseDiscountPercentage(sale.getBillWiseDiscountPercentage());
+//            saleResponse.setBillWiseDiscountTotalAmount(sale.getBillWiseDiscountTotalAmount());
+//            saleResponse.setLineWiseDiscountTotalAmount(sale.getLineWiseDiscountTotalAmount());
+//            saleResponse.setFullyPaid(sale.getFullyPaid());
+//            saleResponse.setPaidAmount(sale.getPaidAmount());
+//            saleResponse.setHold(sale.getHold());
+//            saleResponse.setModifiedBy(sale.getModifiedBy());
+//            saleResponse.setModifiedDate(sm.format(sale.getModifiedDate()));
+//            return saleResponse;
+//        }).toList();
+//    }
 
     @Override
     public List<SaleResponse> getAllHoldSales() {

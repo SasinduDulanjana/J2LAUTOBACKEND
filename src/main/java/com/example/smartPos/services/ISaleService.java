@@ -8,9 +8,11 @@ import java.util.Date;
 import java.util.List;
 
 public interface ISaleService {
-    List<SaleResponse> getAllSales();
+    List<SaleResponse> getAllSales(int page, int size);
 
-    List<SaleResponse> getAllDeletedSales();
+    List<SaleResponse> getAllSalesWithoutPagination();
+
+//    List<SaleResponse> getAllDeletedSales();
 
     List<SaleResponse> getAllHoldSales();
 

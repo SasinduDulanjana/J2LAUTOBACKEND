@@ -27,10 +27,18 @@ public class PurchaseController {
 
 
     @GetMapping(path = "/api/getAllPurchase")
-    public List<PurchaseResponse> getALlPurchase() {
-        return purchaseService.getAllPurchases();
+    public ResponseEntity<List<PurchaseResponse>> getAllPurchase(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        List<PurchaseResponse> purchases = purchaseService.getAllPurchases(page, size);
+        return ResponseEntity.ok(purchases);
     }
 
+    @GetMapping(path = "/api/getAllPurchaseWithoutPagination")
+    public ResponseEntity<List<PurchaseResponse>> getAllPurchaseWithoutPagination() {
+        List<PurchaseResponse> purchases = purchaseService.getAllPurchasesWithoutPagination();
+        return ResponseEntity.ok(purchases);
+    }
     @PostMapping(path = "/api/createPurchase")
     public ResponseEntity<PurchaseResponse> createPurchase(@RequestBody PurchaseRequest purchaseRequest) {
         PurchaseResponse savedPurchase = purchaseService.createPurchase(purchaseRequest);

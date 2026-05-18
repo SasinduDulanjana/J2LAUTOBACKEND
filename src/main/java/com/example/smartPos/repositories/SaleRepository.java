@@ -1,6 +1,8 @@
 package com.example.smartPos.repositories;
 
 import com.example.smartPos.repositories.model.Sale;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,7 +24,13 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
             "LEFT JOIN FETCH s.customer c " +
             "LEFT JOIN FETCH s.user u " +
             "WHERE s.status = :status")
-    List<Sale> findAllByStatus(@Param("status") Integer status);
+    Page<Sale> findAllByStatus(@Param("status") Integer status, Pageable pageable);
+
+    @Query("SELECT s FROM Sale s " +
+            "LEFT JOIN FETCH s.customer c " +
+            "LEFT JOIN FETCH s.user u " +
+            "WHERE s.status = :status")
+    List<Sale> findAllByStatusWithoutPagination(@Param("status") Integer status);
 
     List<Sale> findAllByIsHold(Boolean isHold);
 
