@@ -103,9 +103,9 @@ public class SaleServiceImpl implements ISaleService {
                     .toList();
 
             // Skip the sale if all products are returned
-            if (filteredProducts.isEmpty()) {
-                return null;
-            }
+//            if (filteredProducts.isEmpty()) {
+//                return null;
+//            }
 
             Double totalRefundedAmount = salesReturns.stream()
                     .filter(salesReturn -> salesReturn.getSale().getSaleId().equals(sale.getSaleId()))
