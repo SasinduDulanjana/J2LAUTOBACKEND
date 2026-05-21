@@ -34,7 +34,7 @@ public interface IPurchaseService {
 
     List<PurchaseResponse> getPurchasesByDateRange(Date startDate, Date endDate);
 
-    ProductBatchResponse fetchProductBatchDetails(ProductBatchRequest request);
+    ProductListOfBatchResponse fetchProductBatchDetails(ProductBatchRequest request);
 
     PurchaseResponse getPurchaseByIdentifier(String identifier);
 

@@ -59,9 +59,8 @@ public class PurchaseController {
     }
 
     @PostMapping(path = "/api/getProductBatchDetails")
-    public ResponseEntity<ProductBatchResponse> getProductBatchDetails(@RequestBody ProductBatchRequest request) {
-        ProductBatchResponse response = purchaseService.fetchProductBatchDetails(request);
-        return ResponseCreator.success(response);
+    public ProductListOfBatchResponse getProductBatchDetails(@RequestBody ProductBatchRequest request) {
+        return purchaseService.fetchProductBatchDetails(request);
     }
 
     @GetMapping(path = "/api/getPurchaseByIdentifier/{identifier}")

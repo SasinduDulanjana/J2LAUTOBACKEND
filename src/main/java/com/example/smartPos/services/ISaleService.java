@@ -51,4 +51,6 @@ public interface ISaleService {
     PaymentResponse getPaymentByInvoice(String invoiceNumber);
 
     void editDisocuntAmount(EditDiscountAmountRequest request);
+
+    List<SoldProductPriceResponse> getSoldPricesByBatchNumber(String batchNumber);
 }

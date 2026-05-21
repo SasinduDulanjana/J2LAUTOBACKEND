@@ -160,4 +160,10 @@ public class SaleController {
         saleService.editDisocuntAmount(request);
         return ResponseEntity.ok("Discount amount updated successfully.");
     }
+
+    @GetMapping("/api/getSalesByBatchNumber/{batchNumber}")
+    public ResponseEntity<List<SoldProductPriceResponse>> getSalesByBatchNumber(@PathVariable String batchNumber) {
+        List<SoldProductPriceResponse> sales = saleService.getSoldPricesByBatchNumber(batchNumber);
+        return ResponseEntity.ok(sales);
+    }
 }

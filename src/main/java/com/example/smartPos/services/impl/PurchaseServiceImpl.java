@@ -108,26 +108,26 @@ public class PurchaseServiceImpl implements IPurchaseService {
         Page<Purchase> purchasePage = purchaseRepository.findAll(pageable);
         List<Purchase> purchaseList = purchasePage.getContent();
         // Fetch all purchase returns for the purchases
-        Map<Integer, Double> totalReturnedQtyByPurchaseId = purchaseReturnRepository.findByPurchaseIds(
-                        purchaseList.stream().map(Purchase::getPurchaseId).toList()
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        pr -> pr.getPurchase().getPurchaseId(), // Use the purchaseId directly
-                        Collectors.summingDouble(PurchaseReturn::getQuantityReturned)
-                ));
+//        Map<Integer, Double> totalReturnedQtyByPurchaseId = purchaseReturnRepository.findByPurchaseIds(
+//                        purchaseList.stream().map(Purchase::getPurchaseId).toList()
+//                ).stream()
+//                .collect(Collectors.groupingBy(
+//                        pr -> pr.getPurchase().getPurchaseId(), // Use the purchaseId directly
+//                        Collectors.summingDouble(PurchaseReturn::getQuantityReturned)
+//                ));
 
         // Filter out fully returned purchases
-        List<Purchase> filteredPurchases = purchaseList.stream()
-                .filter(purchase -> {
-                    double totalQty = purchase.getProducts().stream()
-                            .mapToDouble(product -> productBatchRepository
-                                    .findByPurchaseIdAndProduct_ProductId(purchase.getPurchaseId(), product.getProductId())
-                                    .getQty())
-                            .sum();
-                    double returnedQty = totalReturnedQtyByPurchaseId.getOrDefault(purchase.getPurchaseId(), 0.0);
-                    return returnedQty < totalQty; // Include if not fully returned
-                })
-                .toList();
+//        List<Purchase> filteredPurchases = purchaseList.stream()
+//                .filter(purchase -> {
+//                    double totalQty = purchase.getProducts().stream()
+//                            .mapToDouble(product -> productBatchRepository
+//                                    .findByPurchaseIdAndProduct_ProductId(purchase.getPurchaseId(), product.getProductId())
+//                                    .getQty())
+//                            .sum();
+//                    double returnedQty = totalReturnedQtyByPurchaseId.getOrDefault(purchase.getPurchaseId(), 0.0);
+//                    return returnedQty < totalQty; // Include if not fully returned
+//                })
+//                .toList();
 
         // Fetch all payment details for the purchases in a single query
         Map<Integer, Double> totalPaidAmountByPurchaseId = paymentDetailsRepository
@@ -141,7 +141,7 @@ public class PurchaseServiceImpl implements IPurchaseService {
                 ));
 
         // Map purchases to responses
-        return filteredPurchases.stream()
+        return purchaseList.stream()
                 .map(purchase -> mapToPurchaseResponse(purchase, totalPaidAmountByPurchaseId))
                 .toList();
     }
@@ -151,26 +151,26 @@ public class PurchaseServiceImpl implements IPurchaseService {
         List<Purchase> purchaseList = purchaseRepository.findAll();
 
         // Fetch all purchase returns for the purchases
-        Map<Integer, Double> totalReturnedQtyByPurchaseId = purchaseReturnRepository.findByPurchaseIds(
-                        purchaseList.stream().map(Purchase::getPurchaseId).toList()
-                ).stream()
-                .collect(Collectors.groupingBy(
-                        pr -> pr.getPurchase().getPurchaseId(), // Use the purchaseId directly
-                        Collectors.summingDouble(PurchaseReturn::getQuantityReturned)
-                ));
+//        Map<Integer, Double> totalReturnedQtyByPurchaseId = purchaseReturnRepository.findByPurchaseIds(
+//                        purchaseList.stream().map(Purchase::getPurchaseId).toList()
+//                ).stream()
+//                .collect(Collectors.groupingBy(
+//                        pr -> pr.getPurchase().getPurchaseId(), // Use the purchaseId directly
+//                        Collectors.summingDouble(PurchaseReturn::getQuantityReturned)
+//                ));
 
         // Filter out fully returned purchases
-        List<Purchase> filteredPurchases = purchaseList.stream()
-                .filter(purchase -> {
-                    double totalQty = purchase.getProducts().stream()
-                            .mapToDouble(product -> productBatchRepository
-                                    .findByPurchaseIdAndProduct_ProductId(purchase.getPurchaseId(), product.getProductId())
-                                    .getQty())
-                            .sum();
-                    double returnedQty = totalReturnedQtyByPurchaseId.getOrDefault(purchase.getPurchaseId(), 0.0);
-                    return returnedQty < totalQty; // Include if not fully returned
-                })
-                .toList();
+//        List<Purchase> filteredPurchases = purchaseList.stream()
+//                .filter(purchase -> {
+//                    double totalQty = purchase.getProducts().stream()
+//                            .mapToDouble(product -> productBatchRepository
+//                                    .findByPurchaseIdAndProduct_ProductId(purchase.getPurchaseId(), product.getProductId())
+//                                    .getQty())
+//                            .sum();
+//                    double returnedQty = totalReturnedQtyByPurchaseId.getOrDefault(purchase.getPurchaseId(), 0.0);
+//                    return returnedQty < totalQty; // Include if not fully returned
+//                })
+//                .toList();
 
         // Fetch all payment details for the purchases in a single query
         Map<Integer, Double> totalPaidAmountByPurchaseId = paymentDetailsRepository
@@ -184,7 +184,7 @@ public class PurchaseServiceImpl implements IPurchaseService {
                 ));
 
         // Map purchases to responses
-        return filteredPurchases.stream()
+        return purchaseList.stream()
                 .map(purchase -> mapToPurchaseResponse(purchase, totalPaidAmountByPurchaseId))
                 .toList();
     }
@@ -567,40 +567,50 @@ public class PurchaseServiceImpl implements IPurchaseService {
     }
 
     @Override
-    public ProductBatchResponse fetchProductBatchDetails(ProductBatchRequest request) {
+    public ProductListOfBatchResponse fetchProductBatchDetails(ProductBatchRequest request) {
         // Fetch ProductBatch and validate
-        ProductBatch productBatch = Optional.ofNullable(
-                productBatchRepository.findByPurchaseIdAndProduct_ProductId(request.getPurchaseId(), request.getProductId())
+        List<ProductBatch> getBatchNumber = Optional.ofNullable(
+                productBatchRepository.findByPurchaseId(request.getPurchaseId())
         ).orElseThrow(() -> new ResourceNotFoundException(ErrorCodes.PRODUCT_BATCH_NOT_FOUND));
 
-        // Fetch Batch and validate
-        Batch batch = batchRepository.findById(productBatch.getBatch().getBatchId()).orElseThrow(
-                () -> new ResourceNotFoundException(ErrorCodes.BATCH_NOT_FOUND)
-        );
+        List<ProductBatch> productBatches = Optional.ofNullable(
+                productBatchRepository.findByBatch_BatchNumber(getBatchNumber.get(0).getBatch().getBatchNumber())
+        ).orElseThrow(() -> new ResourceNotFoundException(ErrorCodes.PRODUCT_BATCH_NOT_FOUND));
 
-        // Add return details filtered by product ID
-        List<PurchaseReturn> purchaseReturns = purchaseReturnRepository.findByPurchase_PurchaseId(productBatch.getPurchaseId());
-        double totalReturnedAmount = purchaseReturns.stream()
-                .filter(returnItem -> returnItem.getProduct().getProductId().equals(productBatch.getProduct().getProductId()))
-                .mapToDouble(PurchaseReturn::getRefundAmount)
-                .sum();
 
-        double quantityReturned = purchaseReturns.stream()
-                .filter(returnItem -> returnItem.getProduct().getProductId().equals(productBatch.getProduct().getProductId()))
-                .mapToDouble(PurchaseReturn::getQuantityReturned)
-                .sum();
+        // Map each ProductBatch to ProductBatchResponse
+        List<ProductBatchResponse> productBatchResponses = productBatches.stream().map(productBatch -> {
+            // Add return details filtered by product ID
+            List<PurchaseReturn> purchaseReturns = purchaseReturnRepository.findByPurchase_PurchaseId(productBatch.getPurchaseId());
+            double totalReturnedAmount = purchaseReturns.stream()
+                    .filter(returnItem -> returnItem.getProduct().getProductId().equals(productBatch.getProduct().getProductId()))
+                    .mapToDouble(PurchaseReturn::getRefundAmount)
+                    .sum();
 
-        // Map to ProductBatchResponse
-        ProductBatchResponse response = new ProductBatchResponse();
-        response.setPurchaseId(productBatch.getPurchaseId());
-        response.setBatchNumber(batch.getBatchNumber());
-        response.setProductId(productBatch.getProduct().getProductId());
-        response.setProductName(productBatch.getProduct().getProductName());
-        response.setQty(productBatch.getQty());
-        response.setUnitCost(productBatch.getUnitCost());
-        response.setRetailPrice(productBatch.getRetailPrice());
-        response.setRefundedAmount(totalReturnedAmount);
-        response.setRefundedQty(quantityReturned);
+            double quantityReturned = purchaseReturns.stream()
+                    .filter(returnItem -> returnItem.getProduct().getProductId().equals(productBatch.getProduct().getProductId()))
+                    .mapToDouble(PurchaseReturn::getQuantityReturned)
+                    .sum();
+
+            // Map to ProductBatchResponse
+            ProductBatchResponse response = new ProductBatchResponse();
+            response.setPurchaseId(productBatch.getPurchaseId());
+            response.setBatchNumber(productBatch.getBatch().getBatchNumber());
+            response.setProductId(productBatch.getProduct().getProductId());
+            response.setProductName(productBatch.getProduct().getProductName());
+            response.setQty(productBatch.getQty());
+            response.setUnitCost(productBatch.getUnitCost());
+            response.setRetailPrice(productBatch.getRetailPrice());
+            response.setRefundedAmount(totalReturnedAmount);
+            response.setRefundedQty(quantityReturned);
+            response.setInvoiceNumber(productBatch.getInvoiceNumber());
+            return response;
+        }).toList();
+
+        ProductListOfBatchResponse response = new ProductListOfBatchResponse();
+        response.setPurchaseId(request.getPurchaseId());
+        response.setBatchNumber(productBatches.get(0).getBatch().getBatchNumber());
+        response.setProductBatchResponses(productBatchResponses);
         return response;
     }
 

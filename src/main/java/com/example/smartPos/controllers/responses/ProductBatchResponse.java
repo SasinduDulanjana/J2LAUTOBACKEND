@@ -17,6 +17,8 @@ public class ProductBatchResponse extends CommonResponse {
 
     private Integer purchaseId;
 
+    private String invoiceNumber;
+
     private Double qty;
 
     private Double unitCost;
@@ -106,4 +108,12 @@ public class ProductBatchResponse extends CommonResponse {
     public void setRefundedQty(Double refundedQty) {
         this.refundedQty = refundedQty;
     }
+
+        public String getInvoiceNumber() {
+            return invoiceNumber;
+        }
+
+        public void setInvoiceNumber(String invoiceNumber) {
+            this.invoiceNumber = invoiceNumber;
+        }
 }

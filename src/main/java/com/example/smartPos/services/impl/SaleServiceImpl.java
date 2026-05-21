@@ -84,23 +84,23 @@ public class SaleServiceImpl implements ISaleService {
         );
 
         // Group returned products by sale ID
-        Map<Integer, List<SalesReturn>> returnsBySaleId = salesReturns.stream()
-                .collect(Collectors.groupingBy(salesReturn -> salesReturn.getSale().getSaleId()));
+//        Map<Integer, List<SalesReturn>> returnsBySaleId = salesReturns.stream()
+//                .collect(Collectors.groupingBy(salesReturn -> salesReturn.getSale().getSaleId()));
 
         // Map sales to SaleResponse
         return sales.stream().map(sale -> {
             // Filter out returned products for the current sale
-            List<SaleProduct> filteredProducts = sale.getSaleProducts().stream()
-                    .filter(saleProduct -> {
-                        List<SalesReturn> returnsForSale = returnsBySaleId.get(sale.getSaleId());
-                        if (returnsForSale == null) {
-                            return true; // No returns for this sale, include all products
-                        }
-                        return returnsForSale.stream()
-                                .noneMatch(salesReturn -> salesReturn.getProduct().getProductId()
-                                        .equals(saleProduct.getProduct().getProductId()));
-                    })
-                    .toList();
+//            List<SaleProduct> filteredProducts = sale.getSaleProducts().stream()
+//                    .filter(saleProduct -> {
+//                        List<SalesReturn> returnsForSale = returnsBySaleId.get(sale.getSaleId());
+//                        if (returnsForSale == null) {
+//                            return true; // No returns for this sale, include all products
+//                        }
+//                        return returnsForSale.stream()
+//                                .noneMatch(salesReturn -> salesReturn.getProduct().getProductId()
+//                                        .equals(saleProduct.getProduct().getProductId()));
+//                    })
+//                    .toList();
 
             // Skip the sale if all products are returned
 //            if (filteredProducts.isEmpty()) {
@@ -142,7 +142,7 @@ public class SaleServiceImpl implements ISaleService {
             saleResponse.setModifiedDate(sm.format(sale.getModifiedDate()));
             saleResponse.setVehicle(sale.getVehicle());
             saleResponse.setVehicleNumber(sale.getVehicleNumber());
-            saleResponse.setSoldProducts(filteredProducts.stream().map(this::mapToSoldProductResponse).toList());
+//            saleResponse.setSoldProducts(filteredProducts.stream().map(this::mapToSoldProductResponse).toList());
             return saleResponse;
         }).filter(Objects::nonNull).toList();
     }
@@ -161,23 +161,23 @@ public class SaleServiceImpl implements ISaleService {
         );
 
         // Group returned products by sale ID
-        Map<Integer, List<SalesReturn>> returnsBySaleId = salesReturns.stream()
-                .collect(Collectors.groupingBy(salesReturn -> salesReturn.getSale().getSaleId()));
+//        Map<Integer, List<SalesReturn>> returnsBySaleId = salesReturns.stream()
+//                .collect(Collectors.groupingBy(salesReturn -> salesReturn.getSale().getSaleId()));
 
         // Map sales to SaleResponse
         return sales.stream().map(sale -> {
             // Filter out returned products for the current sale
-            List<SaleProduct> filteredProducts = sale.getSaleProducts().stream()
-                    .filter(saleProduct -> {
-                        List<SalesReturn> returnsForSale = returnsBySaleId.get(sale.getSaleId());
-                        if (returnsForSale == null) {
-                            return true; // No returns for this sale, include all products
-                        }
-                        return returnsForSale.stream()
-                                .noneMatch(salesReturn -> salesReturn.getProduct().getProductId()
-                                        .equals(saleProduct.getProduct().getProductId()));
-                    })
-                    .toList();
+//            List<SaleProduct> filteredProducts = sale.getSaleProducts().stream()
+//                    .filter(saleProduct -> {
+//                        List<SalesReturn> returnsForSale = returnsBySaleId.get(sale.getSaleId());
+//                        if (returnsForSale == null) {
+//                            return true; // No returns for this sale, include all products
+//                        }
+//                        return returnsForSale.stream()
+//                                .noneMatch(salesReturn -> salesReturn.getProduct().getProductId()
+//                                        .equals(saleProduct.getProduct().getProductId()));
+//                    })
+//                    .toList();
 
             // Skip the sale if all products are returned
 //            if (filteredProducts.isEmpty()) {
@@ -219,7 +219,7 @@ public class SaleServiceImpl implements ISaleService {
             saleResponse.setModifiedDate(sm.format(sale.getModifiedDate()));
             saleResponse.setVehicle(sale.getVehicle());
             saleResponse.setVehicleNumber(sale.getVehicleNumber());
-            saleResponse.setSoldProducts(filteredProducts.stream().map(this::mapToSoldProductResponse).toList());
+//            saleResponse.setSoldProducts(filteredProducts.stream().map(this::mapToSoldProductResponse).toList());
             return saleResponse;
         }).filter(Objects::nonNull).toList();
     }
@@ -230,10 +230,10 @@ public class SaleServiceImpl implements ISaleService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCodes.SALE_NOT_FOUND));
 
         // Collect all batch numbers from the sold products
-        List<String> batchNumbers = sale.getSaleProducts().stream()
-                .map(SaleProduct::getBatchNo)
-                .distinct()
-                .toList();
+//        List<String> batchNumbers = sale.getSaleProducts().stream()
+//                .map(SaleProduct::getBatchNo)
+//                .distinct()
+//                .toList();
 
 
         //add return details
@@ -518,7 +518,7 @@ public class SaleServiceImpl implements ISaleService {
         SoldProductResponse response = new SoldProductResponse();
         response.setSaleProductId(saleProduct.getSaleProductId());
         response.setProduct(saleProduct.getProduct());
-        response.setSale(saleProduct.getSale());
+//        response.setSale(saleProduct.getSale());
         response.setBatchNo(saleProduct.getBatchNo());
         response.setQuantity(saleProduct.getQuantity());
         response.setDiscountPercentage(saleProduct.getDiscountPercentage());
@@ -812,5 +812,25 @@ public class SaleServiceImpl implements ISaleService {
 
         // Save the updated SaleProduct
         saleRepository.save(sale);
+    }
+
+    public List<SoldProductPriceResponse> getSoldPricesByBatchNumber(String batchNumber) {
+        // Fetch all sales with status 1
+        List<Sale> sales = saleRepository.findAllByStatusWithoutPagination(1);
+
+        // Extract product ID, batch number, and sold price for products matching the batch number
+        return sales.stream()
+                .flatMap(sale -> sale.getSaleProducts().stream()) // Flatten the list of SaleProducts
+                .filter(saleProduct -> saleProduct.getBatchNo().equals(batchNumber)) // Filter by batch number
+                .map(saleProduct -> {
+                    SoldProductPriceResponse response = new SoldProductPriceResponse();
+                    response.setProductId(saleProduct.getProduct().getProductId());
+                    response.setBatchNumber(saleProduct.getBatchNo());
+                    response.setSoldPrice(saleProduct.getRetailPrice());
+                    response.setTotalAmount(saleProduct.getDiscountedTotal());
+                    response.setQty(saleProduct.getQuantity());
+                    return response;
+                })
+                .toList();
     }
 }

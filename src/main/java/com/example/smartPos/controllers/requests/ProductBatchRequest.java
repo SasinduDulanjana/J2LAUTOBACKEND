@@ -10,7 +10,6 @@ public class ProductBatchRequest extends CommonResponse {
 
     private String batchNo;
 
-    private Integer productId;
 
     public Integer getPurchaseId() {
         return purchaseId;
@@ -28,11 +27,4 @@ public class ProductBatchRequest extends CommonResponse {
         this.batchNo = batchNo;
     }
 
-    public Integer getProductId() {
-        return productId;
-    }
-
-    public void setProductId(Integer productId) {
-        this.productId = productId;
-    }
 }
