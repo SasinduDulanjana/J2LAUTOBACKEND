@@ -64,14 +64,16 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
     @Query("SELECT TO_CHAR(s.saleDate, 'YYYY-MM') AS month, SUM(sp.quantity * b.unitCost) " +
             "FROM Sale s " +
             "JOIN s.saleProducts sp " +
-            "JOIN Batch b ON sp.batchNo = b.batchNumber " +
-            "GROUP BY TO_CHAR(s.saleDate, 'YYYY-MM')")
+            "JOIN Batch b ON sp.batchNo = b.batchNumber AND sp.product.sku = b.sku " +
+            "WHERE s.status = 1 " +
+            "GROUP BY TO_CHAR(s.saleDate, 'YYYY-MM') " +
+            "ORDER BY month")
     List<Object[]> findMonthlyCOGS();
 
     @Query("SELECT SUM(sp.quantity * b.unitCost) " +
             "FROM Sale s " +
             "JOIN s.saleProducts sp " +
-            "JOIN Batch b ON sp.batchNo = b.batchNumber " +
+            "JOIN Batch b ON sp.batchNo = b.batchNumber AND sp.product.sku = b.sku " +
             "WHERE s.status = 1")
     Double findTotalCOGS();
 }
