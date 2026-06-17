@@ -31,7 +31,8 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Intege
             "FROM SalesReturn sr " +
             "JOIN SaleProduct sp ON sr.sale.saleId = sp.sale.saleId " +
             "JOIN Product p ON sr.product.productId = p.productId " +
-            "JOIN Batch b ON sp.batchNo = b.batchNumber AND p.sku = b.sku")
+            "JOIN Batch b ON sp.batchNo = b.batchNumber AND p.sku = b.sku " +
+            "WHERE sr.product.productId = sp.product.productId")
     Double findTotalSalesReturnCOGS();
 
     @Query("SELECT TO_CHAR(sr.returnDate, 'YYYY-MM') AS month, " +
@@ -40,6 +41,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Intege
             "JOIN SaleProduct sp ON sr.sale.saleId = sp.sale.saleId " +
             "JOIN Product p ON sr.product.productId = p.productId " +
             "JOIN Batch b ON sp.batchNo = b.batchNumber AND p.sku = b.sku " +
+            "WHERE sr.product.productId = sp.product.productId " +
             "GROUP BY TO_CHAR(sr.returnDate, 'YYYY-MM')")
     List<Object[]> findMonthlySalesReturnCOGS();
 }
